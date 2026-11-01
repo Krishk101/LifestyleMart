@@ -43,3 +43,20 @@ steps:
   - script: |
       python -m compileall -q app.py database_setup.py payment_gateway.py seed_eco.py migrate_eco.py
     displayName: 'Validate Python code'
+
+  - script: |
+      python -m pip install pytest
+    displayName: 'Install pytest'
+
+  - script: |
+      mkdir -p test-results
+      python -m pytest -v --junitxml=test-results/pytest-results.xml
+    displayName: 'Run automated tests'
+
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: 'test-results/pytest-results.xml'
+      failTaskOnFailedTests: true
+      testRunTitle: 'LifestyleMart Python Tests'
+    condition: succeededOrFailed()

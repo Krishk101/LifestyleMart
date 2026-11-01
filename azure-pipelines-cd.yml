@@ -1,0 +1,58 @@
+# LifestyleMart - Continuous Deployment Pipeline
+
+trigger: none
+pr: none
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+resources:
+  pipelines:
+    - pipeline: lifestylemart_ci
+      source: azure-pipelines-ci
+      trigger: none
+
+variables:
+  azureServiceConnection: 'sc-lifestylemart-dev'
+  webAppName: 'lifestylemart-dev-krishk101'
+  artifactName: 'LifestyleMart'
+
+steps:
+  # 1. Download the artifact from CI
+  - download: lifestylemart_ci
+    artifact: '$(artifactName)'
+    displayName: 'Download CI deployment artifact'
+
+  # 2. Deploy to Azure App Service
+  - task: AzureWebApp@1
+    displayName: 'Deploy LifestyleMart to Azure'
+    inputs:
+      azureSubscription: '$(azureServiceConnection)'
+      appType: 'webAppLinux'
+      appName: '$(webAppName)'
+      package: '$(Pipeline.Workspace)/lifestylemart_ci/$(artifactName)/LifestyleMart.zip'
+      runtimeStack: 'PYTHON|3.11'
+
+  # 3. Smoke test
+  - script: |
+      echo "Waiting for application startup..."
+      sleep 30
+
+      URL="https://$(webAppName).azurewebsites.net"
+
+      for attempt in {1..6}; do
+        STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+
+        echo "Attempt $attempt: HTTP $STATUS"
+
+        if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
+          echo "Application smoke test passed."
+          exit 0
+        fi
+
+        sleep 15
+      done
+
+      echo "Application smoke test failed."
+      exit 1
+    displayName: 'Verify deployed application'

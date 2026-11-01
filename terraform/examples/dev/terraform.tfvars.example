@@ -1,8 +1,41 @@
+
 subscription_id = "YOUR-AZURE-SUBSCRIPTION-ID"
 
 resource_groups = {
   dev = {
     name     = "rg-lifestylemart-dev"
     location = "South India"
+  }
+}
+
+app_service_plans = {
+  dev = {
+    name               = "asp-lifestylemart-dev"
+    resource_group_key = "dev"
+    os_type            = "Linux"
+    sku_name           = "B1"
+    worker_count       = 1
+  }
+}
+
+linux_web_apps = {
+  dev = {
+    name                 = "lifestylemart-dev-krishk101"
+    resource_group_key   = "dev"
+    app_service_plan_key = "dev"
+    python_version       = "3.11"
+    app_command_line     = "gunicorn --bind=0.0.0.0 --timeout 600 app:app"
+
+    app_settings = {
+      SCM_DO_BUILD_DURING_DEPLOYMENT = "true"
+      SSLCOMMERZ_SIMULATE            = "True"
+      SSLCOMMERZ_IS_SANDBOX          = "True"
+    }
+
+    tags = {
+      environment = "dev"
+      project     = "LifestyleMart"
+      managed_by  = "Terraform"
+    }
   }
 }

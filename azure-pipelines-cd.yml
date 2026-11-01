@@ -9,7 +9,7 @@ pool:
 resources:
   pipelines:
     - pipeline: lifestylemart_ci
-      source: azure-pipelines-ci
+      source: 'azure-pipelines-ci.yml'
       trigger: none
 
 variables:

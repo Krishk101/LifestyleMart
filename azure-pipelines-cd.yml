@@ -9,8 +9,11 @@ pool:
 resources:
   pipelines:
     - pipeline: lifestylemart_ci
-      source: 'azure-pipelines-ci.yml'
-      trigger: none
+      source: 'Krishk101.LifestyleMart'
+      trigger:
+        branches:
+          include:
+            - main
 
 variables:
   azureServiceConnection: 'sc-lifestylemart-dev'

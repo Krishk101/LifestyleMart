@@ -1,0 +1,8 @@
+subscription_id = "YOUR-AZURE-SUBSCRIPTION-ID"
+
+resource_groups = {
+  dev = {
+    name     = "rg-lifestylemart-dev"
+    location = "South India"
+  }
+}

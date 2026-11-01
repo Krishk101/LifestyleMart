@@ -76,3 +76,12 @@ static/uploads/*.jpeg
 __pycache__
 
 .vercel
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfplan
+crash.log
+crash.*.log

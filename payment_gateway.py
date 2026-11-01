@@ -1,7 +1,6 @@
 import os
+
 import requests
-import uuid
-from flask import url_for
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -64,7 +63,7 @@ class SSLCommerzGateway:
                 print(f"SSLCommerz Error: {response_data.get('failedreason')}")
                 return None
         except Exception as e:
-            print(f"Error connecting to SSLCommerz: {str(e)}")
+            print(f"Error connecting to SSLCommerz: {e!s}")
             return None
 
     def validate_payment(self, val_id):
@@ -90,5 +89,5 @@ class SSLCommerzGateway:
             result = response.json()
             return result.get('status') in ['VALID', 'VALIDATED']
         except Exception as e:
-            print(f"Error validating payment: {str(e)}")
+            print(f"Error validating payment: {e!s}")
             return False

@@ -2,8 +2,8 @@
 Migration script: Add is_eco_friendly and eco_description columns to products table.
 Run this once to update the existing database without losing data.
 """
-import sqlite3
 import os
+import sqlite3
 
 # Find the database file
 db_path = os.path.join('instance', 'ecommerce.db')

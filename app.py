@@ -3,20 +3,47 @@ LIFESTYLE MART - Python eCommerce Platform
 Main Flask application
 """
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, TextAreaField, IntegerField, FloatField, SelectField, BooleanField, DateField
-from wtforms.validators import DataRequired, Email, Length, NumberRange, EqualTo
-from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
-from datetime import datetime, timedelta
 import os
 import secrets
-from dotenv import load_dotenv
+from datetime import datetime, timedelta
 from functools import wraps
+
+from dotenv import load_dotenv
+from flask import (
+    Flask,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
+from flask_login import (
+    LoginManager,
+    UserMixin,
+    current_user,
+    login_required,
+    login_user,
+    logout_user,
+)
+from flask_sqlalchemy import SQLAlchemy
+from flask_wtf import FlaskForm
+from werkzeug.security import check_password_hash, generate_password_hash
+from wtforms import (
+    BooleanField,
+    DateField,
+    FloatField,
+    IntegerField,
+    PasswordField,
+    SelectField,
+    StringField,
+    TextAreaField,
+)
+from wtforms.validators import DataRequired, Email, EqualTo, Length, NumberRange
+
 from payment_gateway import SSLCommerzGateway
+
 try:
     import openai
 except ImportError:
@@ -933,10 +960,8 @@ def assistant():
 
         raw_message = response.choices[0].message.content.strip()
         # Clean up potential markdown formatting that OpenAI sometimes adds
-        if raw_message.startswith("```json"):
-            raw_message = raw_message[7:]
-        if raw_message.endswith("```"):
-            raw_message = raw_message[:-3]
+        raw_message = raw_message.removeprefix("```json")
+        raw_message = raw_message.removesuffix("```")
 
         ai_response = _json.loads(raw_message.strip())
 
@@ -1107,7 +1132,7 @@ def apply_promo():
         
     session['promo_code'] = code
     session['promo_discount'] = discount
-    flash(f'Promo code applied successfully!', 'success')
+    flash('Promo code applied successfully!', 'success')
     return redirect(url_for('cart'))
 
 @app.route('/remove_promo')
@@ -1389,10 +1414,10 @@ def process_simulation():
         order.payment_status = 'paid'
         order.val_id = f'MOCK-VAL-{secrets.token_hex(4)}'
         db.session.commit()
-        flash(f'Payment successful (Simulated)!', 'success')
+        flash('Payment successful (Simulated)!', 'success')
         return redirect(url_for('order_confirmation', id=order.id))
     else:
-        flash(f'Payment failed (Simulated).', 'danger')
+        flash('Payment failed (Simulated).', 'danger')
         return redirect(url_for('cart'))
 
 @app.route('/add_review/<int:product_id>', methods=['POST'])

@@ -2,10 +2,12 @@
 Seed eco-friendly data into the existing database.
 Marks some existing products as eco-friendly and adds new sustainable products.
 """
-import os, sys
+import os
+import sys
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app import app, db, Product, Category, User
+from app import Product, User, app, db
 
 with app.app_context():
     # 1. Mark some existing products as eco-friendly

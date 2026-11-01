@@ -9,10 +9,24 @@ from datetime import datetime, timedelta
 # Add the current directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app import app, db, User, Category, Product, Order, OrderItem, Review, FlashDeal, Offer, GiftCard, Message
-from werkzeug.security import generate_password_hash
 import random
 import string
+
+from werkzeug.security import generate_password_hash
+
+from app import (
+    Category,
+    FlashDeal,
+    GiftCard,
+    Message,
+    Offer,
+    Product,
+    Review,
+    User,
+    app,
+    db,
+)
+
 
 def generate_code(length=10):
     """Generate random code for gift cards and offers"""

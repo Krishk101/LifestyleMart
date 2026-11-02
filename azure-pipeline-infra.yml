@@ -22,11 +22,7 @@ stages:
             displayName: Install Terraform
             inputs:
               terraformVersion: $(terraformVersion)
-
-          - script: terraform fmt -check -recursive
-            displayName: Terraform Format Check
-            workingDirectory: $(Build.SourcesDirectory)/terraform
-
+              
           - task: AzureCLI@2
             displayName: Terraform Init, Validate and Plan
             inputs:

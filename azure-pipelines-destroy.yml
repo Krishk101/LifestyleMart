@@ -1,0 +1,113 @@
+trigger: none
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  terraformVersion: '1.17.1'
+  azureServiceConnection: 'sc-lifestylemart-dev'
+  terraformWorkingDirectory: '$(Build.SourcesDirectory)/terraform/examples/dev'
+
+stages:
+  - stage: TerraformDestroyPlan
+    displayName: Terraform Destroy Plan
+    jobs:
+      - job: PlanDestroy
+        displayName: Generate Destroy Plan
+        steps:
+          - checkout: self
+
+          - task: TerraformInstaller@1
+            displayName: Install Terraform
+            inputs:
+              terraformVersion: $(terraformVersion)
+              
+          - task: AzureCLI@2
+            displayName: Terraform Init and Plan Destroy
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              addSpnToEnvironment: true
+              workingDirectory: $(terraformWorkingDirectory)
+              inlineScript: |
+                export ARM_CLIENT_ID="$servicePrincipalId"
+                export ARM_CLIENT_SECRET="$servicePrincipalKey"
+                export ARM_TENANT_ID="$tenantId"
+                export ARM_SUBSCRIPTION_ID="$(az account show --query id -o tsv)"
+
+                terraform init -input=false
+                terraform validate
+
+                mkdir -p "$(Build.ArtifactStagingDirectory)/tfplan"
+
+                terraform plan \
+                  -destroy \
+                  -input=false \
+                  -var-file="terraform.tfvars.example" \
+                  -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
+                  -out="$(Build.ArtifactStagingDirectory)/tfplan/destroy.tfplan"
+
+          - task: PublishPipelineArtifact@1
+            displayName: Publish Destroy Plan
+            inputs:
+              targetPath: $(Build.ArtifactStagingDirectory)/tfplan
+              artifact: destroy-plan
+
+  - stage: DestroyApproval
+    displayName: Approve Infrastructure Deletion
+    dependsOn: TerraformDestroyPlan
+    condition: succeeded()
+    jobs:
+      - job: ManualApproval
+        displayName: Wait for Destroy Approval
+        pool: server
+        timeoutInMinutes: 1440
+        steps:
+          - task: ManualValidation@0
+            timeoutInMinutes: 1440
+            inputs:
+              instructions: 'WARNING: This will delete the infrastructure managed by this Terraform configuration. Review the destroy plan before approving.'
+              onTimeout: reject
+
+  - stage: TerraformDestroy
+    displayName: Terraform Destroy
+    dependsOn: DestroyApproval
+    condition: succeeded()
+    jobs:
+      - job: Destroy
+        displayName: Delete Azure Infrastructure
+        steps:
+          - checkout: self
+
+          - task: TerraformInstaller@1
+            displayName: Install Terraform
+            inputs:
+              terraformVersion: $(terraformVersion)
+
+          - task: DownloadPipelineArtifact@2
+            displayName: Download Destroy Plan
+            inputs:
+              artifact: destroy-plan
+              path: $(Pipeline.Workspace)/destroy-plan
+
+          - task: AzureCLI@2
+            displayName: Terraform Apply Destroy Plan
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              addSpnToEnvironment: true
+              workingDirectory: $(terraformWorkingDirectory)
+              inlineScript: |
+                export ARM_CLIENT_ID="$servicePrincipalId"
+                export ARM_CLIENT_SECRET="$servicePrincipalKey"
+                export ARM_TENANT_ID="$tenantId"
+                export ARM_SUBSCRIPTION_ID="$(az account show --query id -o tsv)"
+
+                terraform init -input=false
+
+                terraform apply \
+                  -input=false \
+                  "$(Pipeline.Workspace)/destroy-plan/destroy.tfplan"

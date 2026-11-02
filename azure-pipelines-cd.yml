@@ -21,8 +21,8 @@ variables:
   artifactName: 'LifestyleMart'
 
 steps:
-  # 1. Download the artifact from CI
-  - download: lifestylemart_ci
+  # 1. Download the artifact forwarded by Infra
+  - download: lifestylemart_infra
     artifact: '$(artifactName)'
     displayName: 'Download CI deployment artifact'
 
@@ -33,7 +33,7 @@ steps:
       azureSubscription: '$(azureServiceConnection)'
       appType: 'webAppLinux'
       appName: '$(webAppName)'
-      package: '$(Pipeline.Workspace)/lifestylemart_ci/$(artifactName)/LifestyleMart.zip'
+      package: '$(Pipeline.Workspace)/lifestylemart_infra/$(artifactName)/LifestyleMart.zip'
       runtimeStack: 'PYTHON|3.11'
 
   # 3. Smoke test
@@ -59,3 +59,4 @@ steps:
       echo "Application smoke test failed."
       exit 1
     displayName: 'Verify deployed application'
+    

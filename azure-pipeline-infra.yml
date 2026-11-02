@@ -1,6 +1,15 @@
 trigger: none
 pr: none
 
+resources:
+  pipelines:
+    - pipeline: lifestylemart_ci
+      source: azure-pipeline-ci
+      trigger:
+        branches:
+          include:
+            - main
+
 pool:
   vmImage: ubuntu-latest
 
@@ -22,7 +31,7 @@ stages:
             displayName: Install Terraform
             inputs:
               terraformVersion: $(terraformVersion)
-              
+
           - task: AzureCLI@2
             displayName: Terraform Init, Validate and Plan
             inputs:
@@ -110,3 +119,16 @@ stages:
                 terraform apply \
                   -input=false \
                   "$(Pipeline.Workspace)/tfplan/tfplan"
+                
+                
+          - download: lifestylemart_ci
+            artifact: LifestyleMart
+            displayName: Download CI deployment artifact
+
+          - task: PublishPipelineArtifact@1
+            displayName: Forward artifact to CD pipeline
+            inputs:
+              targetPath: $(Pipeline.Workspace)/lifestylemart_ci/LifestyleMart
+              artifact: LifestyleMart
+              publishLocation: pipeline
+

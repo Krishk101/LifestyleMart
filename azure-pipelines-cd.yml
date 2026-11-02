@@ -4,12 +4,12 @@ trigger: none
 pr: none
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: ubuntu-latest
 
 resources:
   pipelines:
-    - pipeline: lifestylemart_ci
-      source: 'Krishk101.LifestyleMart'
+    - pipeline: lifestylemart_infra
+      source: azure-pipeline-infra
       trigger:
         branches:
           include:

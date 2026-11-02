@@ -1,0 +1,116 @@
+trigger: none
+pr: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  terraformVersion: '1.17.1'
+  azureServiceConnection: 'sc-lifestylemart-dev'
+  terraformWorkingDirectory: '$(Build.SourcesDirectory)/terraform/examples/dev'
+
+stages:
+  - stage: TerraformPlan
+    displayName: Terraform Plan
+    jobs:
+      - job: Plan
+        displayName: Initialize, Validate and Plan
+        steps:
+          - checkout: self
+
+          - task: TerraformInstaller@1
+            displayName: Install Terraform
+            inputs:
+              terraformVersion: $(terraformVersion)
+
+          - script: terraform fmt -check -recursive
+            displayName: Terraform Format Check
+            workingDirectory: $(Build.SourcesDirectory)/terraform
+
+          - task: AzureCLI@2
+            displayName: Terraform Init, Validate and Plan
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              addSpnToEnvironment: true
+              workingDirectory: $(terraformWorkingDirectory)
+              inlineScript: |
+                export ARM_CLIENT_ID="$servicePrincipalId"
+                export ARM_CLIENT_SECRET="$servicePrincipalKey"
+                export ARM_TENANT_ID="$tenantId"
+                export ARM_SUBSCRIPTION_ID="$(az account show --query id -o tsv)"
+
+                terraform init -input=false
+                terraform validate
+
+                mkdir -p "$(Build.ArtifactStagingDirectory)/tfplan"
+
+                terraform plan \
+                  -input=false \
+                  -var-file="terraform.tfvars.example" \
+                  -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
+                  -out="$(Build.ArtifactStagingDirectory)/tfplan/tfplan"
+
+          - task: PublishPipelineArtifact@1
+            displayName: Publish Terraform Plan
+            inputs:
+              targetPath: $(Build.ArtifactStagingDirectory)/tfplan
+              artifact: tfplan
+
+  - stage: Approval
+    displayName: Review Terraform Plan
+    dependsOn: TerraformPlan
+    condition: succeeded()
+    jobs:
+      - job: ManualApproval
+        displayName: Wait for Approval
+        pool: server
+        timeoutInMinutes: 1440
+        steps:
+          - task: ManualValidation@0
+            timeoutInMinutes: 1440
+            inputs:
+              instructions: 'Review the Terraform Plan stage logs before approving infrastructure deployment.'
+              onTimeout: reject
+
+  - stage: TerraformApply
+    displayName: Terraform Apply
+    dependsOn: Approval
+    condition: succeeded()
+    jobs:
+      - job: Apply
+        displayName: Apply Approved Terraform Plan
+        steps:
+          - checkout: self
+
+          - task: TerraformInstaller@1
+            displayName: Install Terraform
+            inputs:
+              terraformVersion: $(terraformVersion)
+
+          - task: DownloadPipelineArtifact@2
+            displayName: Download Approved Terraform Plan
+            inputs:
+              artifact: tfplan
+              path: $(Pipeline.Workspace)/tfplan
+
+          - task: AzureCLI@2
+            displayName: Terraform Init and Apply
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              addSpnToEnvironment: true
+              workingDirectory: $(terraformWorkingDirectory)
+              inlineScript: |
+                export ARM_CLIENT_ID="$servicePrincipalId"
+                export ARM_CLIENT_SECRET="$servicePrincipalKey"
+                export ARM_TENANT_ID="$tenantId"
+                export ARM_SUBSCRIPTION_ID="$(az account show --query id -o tsv)"
+
+                terraform init -input=false
+
+                terraform apply \
+                  -input=false \
+                  "$(Pipeline.Workspace)/tfplan/tfplan"
